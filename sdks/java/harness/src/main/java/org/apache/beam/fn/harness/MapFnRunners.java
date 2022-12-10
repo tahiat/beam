@@ -35,9 +35,6 @@ import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.collect.Iterable
  * <p>TODO: Add support for DoFns which are actually user supplied map/lambda functions instead of
  * using the {@link FnApiDoFnRunner} instance.
  */
-@SuppressWarnings({
-  "rawtypes" // TODO(https://github.com/apache/beam/issues/20447)
-})
 public abstract class MapFnRunners {
 
   /** Create a {@link MapFnRunners} where the map function consumes elements directly. */

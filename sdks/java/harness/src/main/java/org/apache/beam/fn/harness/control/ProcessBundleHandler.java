@@ -124,7 +124,6 @@ import org.slf4j.LoggerFactory;
  * fusion barrier</a> for further details.
  */
 @SuppressWarnings({
-  "rawtypes", // TODO(https://github.com/apache/beam/issues/20447)
   "nullness",
   "keyfor"
 }) // TODO(https://github.com/apache/beam/issues/20497)
@@ -136,7 +135,7 @@ public class ProcessBundleHandler {
   public static final String JAVA_SOURCE_URN = "beam:source:java:0.1";
 
   private static final Logger LOG = LoggerFactory.getLogger(ProcessBundleHandler.class);
-  @VisibleForTesting static final Map<String, PTransformRunnerFactory> REGISTERED_RUNNER_FACTORIES;
+  @VisibleForTesting static final Map<String, PTransformRunnerFactory<?>> REGISTERED_RUNNER_FACTORIES;
 
   static {
     Set<Registrar> pipelineRunnerRegistrars =
@@ -145,7 +144,7 @@ public class ProcessBundleHandler {
         Lists.newArrayList(ServiceLoader.load(Registrar.class, ReflectHelpers.findClassLoader())));
 
     // Load all registered PTransform runner factories.
-    ImmutableMap.Builder<String, PTransformRunnerFactory> builder = ImmutableMap.builder();
+    ImmutableMap.Builder<String, PTransformRunnerFactory<?>> builder = ImmutableMap.builder();
     for (Registrar registrar : pipelineRunnerRegistrars) {
       builder.putAll(registrar.getPTransformRunnerFactories());
     }
@@ -160,7 +159,7 @@ public class ProcessBundleHandler {
   private final ShortIdMap shortIds;
   private final boolean runnerAcceptsShortIds;
   private final ExecutionStateSampler executionStateSampler;
-  private final Map<String, PTransformRunnerFactory> urnToPTransformRunnerFactoryMap;
+  private final Map<String, PTransformRunnerFactory<?>> urnToPTransformRunnerFactoryMap;
   private final PTransformRunnerFactory defaultPTransformRunnerFactory;
   private final Cache<Object, Object> processWideCache;
   @VisibleForTesting final BundleProcessorCache bundleProcessorCache;
@@ -200,7 +199,7 @@ public class ProcessBundleHandler {
       FinalizeBundleHandler finalizeBundleHandler,
       ShortIdMap shortIds,
       ExecutionStateSampler executionStateSampler,
-      Map<String, PTransformRunnerFactory> urnToPTransformRunnerFactoryMap,
+      Map<String, PTransformRunnerFactory<?>> urnToPTransformRunnerFactoryMap,
       Cache<Object, Object> processWideCache,
       BundleProcessorCache bundleProcessorCache) {
     this.options = options;
@@ -1016,7 +1015,6 @@ public class ProcessBundleHandler {
   /** A container for the reusable information used to process a bundle. */
   @AutoValue
   @AutoValue.CopyAnnotations
-  @SuppressWarnings({"rawtypes"})
   public abstract static class BundleProcessor {
     public static BundleProcessor create(
         Cache<Object, Object> processWideCache,

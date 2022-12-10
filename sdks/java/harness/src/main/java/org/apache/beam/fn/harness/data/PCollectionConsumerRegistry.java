@@ -60,7 +60,6 @@ import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.collect.Immutabl
  * ElementCountFnDataReceiver) is returned by calling getMultiplexingConsumer.
  */
 @SuppressWarnings({
-  "rawtypes", // TODO(https://github.com/apache/beam/issues/20447)
   "nullness" // TODO(https://github.com/apache/beam/issues/20497)
 })
 public class PCollectionConsumerRegistry {
@@ -68,18 +67,17 @@ public class PCollectionConsumerRegistry {
   /** Stores metadata about each consumer so that the appropriate metrics tracking can occur. */
   @AutoValue
   @AutoValue.CopyAnnotations
-  @SuppressWarnings({"rawtypes"})
-  abstract static class ConsumerAndMetadata {
-    public static ConsumerAndMetadata forConsumer(
-        FnDataReceiver consumer,
+  abstract static class ConsumerAndMetadata<T> {
+    public static <T> ConsumerAndMetadata<T> forConsumer(
+        FnDataReceiver<WindowedValue<T>> consumer,
         String pTransformId,
         ExecutionState state,
         MetricsContainer metricsContainer) {
-      return new AutoValue_PCollectionConsumerRegistry_ConsumerAndMetadata(
+      return new AutoValue_PCollectionConsumerRegistry_ConsumerAndMetadata<>(
           consumer, pTransformId, state, metricsContainer);
     }
 
-    public abstract FnDataReceiver getConsumer();
+    public abstract FnDataReceiver<WindowedValue<T>> getConsumer();
 
     public abstract String getPTransformId();
 
@@ -92,8 +90,8 @@ public class PCollectionConsumerRegistry {
   private final MetricsEnvironmentState metricsEnvironmentState;
   private final ExecutionStateTracker stateTracker;
   private final ShortIdMap shortIdMap;
-  private final Map<String, List<ConsumerAndMetadata>> pCollectionIdsToConsumers;
-  private final Map<String, FnDataReceiver> pCollectionIdsToWrappedConsumer;
+  private final Map<String, List<ConsumerAndMetadata<?>>> pCollectionIdsToConsumers;
+  private final Map<String, FnDataReceiver<?>> pCollectionIdsToWrappedConsumer;
   private final BundleProgressReporter.Registrar bundleProgressReporterRegistrar;
   private final ProcessBundleDescriptor processBundleDescriptor;
   private final RehydratedComponents rehydratedComponents;
@@ -173,7 +171,7 @@ public class PCollectionConsumerRegistry {
             pTransformUniqueName,
             org.apache.beam.runners.core.metrics.ExecutionStateTracker.PROCESS_STATE_NAME);
 
-    List<ConsumerAndMetadata> consumerAndMetadatas =
+    List<ConsumerAndMetadata<?>> consumerAndMetadatas =
         pCollectionIdsToConsumers.computeIfAbsent(pCollectionId, (unused) -> new ArrayList<>());
     consumerAndMetadatas.add(
         ConsumerAndMetadata.forConsumer(
@@ -190,7 +188,7 @@ public class PCollectionConsumerRegistry {
    * @return A {@link FnDataReceiver} which directly wraps all the registered consumers.
    */
   public FnDataReceiver<WindowedValue<?>> getMultiplexingConsumer(String pCollectionId) {
-    return pCollectionIdsToWrappedConsumer.computeIfAbsent(
+    return (FnDataReceiver<WindowedValue<?>>) pCollectionIdsToWrappedConsumer.computeIfAbsent(
         pCollectionId,
         pcId -> {
           if (!processBundleDescriptor.containsPcollections(pCollectionId)) {
@@ -204,7 +202,7 @@ public class PCollectionConsumerRegistry {
             Coder<?> maybeWindowedValueInputCoder = rehydratedComponents.getCoder(coderId);
             // TODO: Stop passing windowed value coders within PCollections.
             if (maybeWindowedValueInputCoder instanceof WindowedValue.WindowedValueCoder) {
-              coder = ((WindowedValueCoder) maybeWindowedValueInputCoder).getValueCoder();
+              coder = ((WindowedValueCoder<?>) maybeWindowedValueInputCoder).getValueCoder();
             } else {
               coder = maybeWindowedValueInputCoder;
             }
@@ -212,24 +210,24 @@ public class PCollectionConsumerRegistry {
             throw new IllegalStateException(
                 String.format("Unable to materialize coder %s", coderId), e);
           }
-          List<ConsumerAndMetadata> consumerAndMetadatas =
+          List<ConsumerAndMetadata<?>> consumerAndMetadatas =
               pCollectionIdsToConsumers.computeIfAbsent(
                   pCollectionId, (unused) -> new ArrayList<>());
 
           if (consumerAndMetadatas.size() == 1) {
-            ConsumerAndMetadata consumerAndMetadata = consumerAndMetadatas.get(0);
+            ConsumerAndMetadata<?> consumerAndMetadata = consumerAndMetadatas.get(0);
             if (consumerAndMetadata.getConsumer() instanceof HandlesSplits) {
-              return new SplittingMetricTrackingFnDataReceiver(
+              return new SplittingMetricTrackingFnDataReceiver<>(
                   pcId, coder, consumerAndMetadata, metricsEnvironmentState);
             }
-            return new MetricTrackingFnDataReceiver(
+            return new MetricTrackingFnDataReceiver<>(
                 pcId, coder, consumerAndMetadata, metricsEnvironmentState);
           } else {
             /* TODO(SDF), Consider supporting splitting each consumer individually. This would never
             come up in the existing SDF expansion, but might be useful to support fused SDF nodes.
             This would require dedicated delivery of the split results to each of the consumers
             separately. */
-            return new MultiplexingMetricTrackingFnDataReceiver(
+            return new MultiplexingMetricTrackingFnDataReceiver<>(
                 pcId, coder, ImmutableList.copyOf(consumerAndMetadatas), metricsEnvironmentState);
           }
         });
@@ -254,7 +252,7 @@ public class PCollectionConsumerRegistry {
     public MetricTrackingFnDataReceiver(
         String pCollectionId,
         Coder<T> coder,
-        ConsumerAndMetadata consumerAndMetadata,
+        ConsumerAndMetadata<T> consumerAndMetadata,
         MetricsEnvironmentState metricsEnvironmentState) {
       this.delegate = consumerAndMetadata.getConsumer();
       this.executionState = consumerAndMetadata.getExecutionState();
@@ -328,7 +326,7 @@ public class PCollectionConsumerRegistry {
    */
   private class MultiplexingMetricTrackingFnDataReceiver<T>
       implements FnDataReceiver<WindowedValue<T>> {
-    private final List<ConsumerAndMetadata> consumerAndMetadatas;
+    private final List<ConsumerAndMetadata<T>> consumerAndMetadatas;
     private final MetricsEnvironmentState metricsEnvironmentState;
     private final BundleCounter elementCountCounter;
     private final SampleByteSizeDistribution<T> sampledByteSizeDistribution;
@@ -337,7 +335,7 @@ public class PCollectionConsumerRegistry {
     public MultiplexingMetricTrackingFnDataReceiver(
         String pCollectionId,
         Coder<T> coder,
-        List<ConsumerAndMetadata> consumerAndMetadatas,
+        List<ConsumerAndMetadata<T>> consumerAndMetadatas,
         MetricsEnvironmentState metricsEnvironmentState) {
       this.consumerAndMetadatas = consumerAndMetadatas;
       this.metricsEnvironmentState = metricsEnvironmentState;
@@ -388,7 +386,7 @@ public class PCollectionConsumerRegistry {
       // PTransform context. This ensures that user metrics obtain the pTransform ID when they are
       // created. Also use the ExecutionStateTracker and enter an appropriate state to track the
       // Process Bundle Execution time metric.
-      for (ConsumerAndMetadata consumerAndMetadata : consumerAndMetadatas) {
+      for (ConsumerAndMetadata<T> consumerAndMetadata : consumerAndMetadatas) {
         MetricsContainer oldContainer =
             metricsEnvironmentState.activate(consumerAndMetadata.getMetricsContainer());
         ExecutionState state = consumerAndMetadata.getExecutionState();
@@ -418,7 +416,7 @@ public class PCollectionConsumerRegistry {
     public SplittingMetricTrackingFnDataReceiver(
         String pCollection,
         Coder<T> coder,
-        ConsumerAndMetadata consumerAndMetadata,
+        ConsumerAndMetadata<T> consumerAndMetadata,
         MetricsEnvironmentState metricsEnvironmentState) {
       super(pCollection, coder, consumerAndMetadata, metricsEnvironmentState);
       this.delegate = (HandlesSplits) consumerAndMetadata.getConsumer();

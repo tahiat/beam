@@ -74,9 +74,6 @@ import org.mockito.stubbing.Answer;
 
 /** Tests for {@link PCollectionConsumerRegistryTest}. */
 @RunWith(JUnit4.class)
-@SuppressWarnings({
-  "rawtypes", // TODO(https://github.com/apache/beam/issues/20447)
-})
 public class PCollectionConsumerRegistryTest {
 
   @Rule public ExpectedException expectedException = ExpectedException.none();

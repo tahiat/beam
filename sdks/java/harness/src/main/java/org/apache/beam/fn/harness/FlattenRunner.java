@@ -28,17 +28,14 @@ import org.apache.beam.sdk.util.WindowedValue;
 import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.collect.ImmutableMap;
 
 /** Executes flatten PTransforms. */
-@SuppressWarnings({
-  "rawtypes" // TODO(https://github.com/apache/beam/issues/20447)
-})
 public class FlattenRunner<InputT> {
   /** A registrar which provides a factory to handle flatten PTransforms. */
   @AutoService(PTransformRunnerFactory.Registrar.class)
   public static class Registrar implements PTransformRunnerFactory.Registrar {
 
     @Override
-    public Map<String, PTransformRunnerFactory> getPTransformRunnerFactories() {
-      return ImmutableMap.of(PTransformTranslation.FLATTEN_TRANSFORM_URN, new Factory());
+    public Map<String, PTransformRunnerFactory<?>> getPTransformRunnerFactories() {
+      return ImmutableMap.of(PTransformTranslation.FLATTEN_TRANSFORM_URN, new Factory<>());
     }
   }
 
@@ -52,7 +49,7 @@ public class FlattenRunner<InputT> {
 
       FlattenRunner<InputT> runner = new FlattenRunner<>();
       for (String pCollectionId : context.getPTransform().getInputsMap().values()) {
-        context.addPCollectionConsumer(pCollectionId, (FnDataReceiver) receiver);
+        context.addPCollectionConsumer(pCollectionId, (FnDataReceiver<WindowedValue<Object>>) (FnDataReceiver<?>) receiver);
       }
 
       return runner;

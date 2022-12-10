@@ -40,9 +40,6 @@ import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.util.WindowedValue;
 
 /** A factory able to instantiate an appropriate handler for a given PTransform. */
-@SuppressWarnings({
-  "rawtypes" // TODO(https://github.com/apache/beam/issues/20447)
-})
 public interface PTransformRunnerFactory<T> {
 
   /** A context used to instantiate and support the handler necessary to execute the PTransform. */
@@ -182,6 +179,6 @@ public interface PTransformRunnerFactory<T> {
      * Returns a mapping from {@link RunnerApi.FunctionSpec#getUrn()} to a factory capable of
      * instantiating an appropriate handler.
      */
-    Map<String, PTransformRunnerFactory> getPTransformRunnerFactories();
+    Map<String, PTransformRunnerFactory<?>> getPTransformRunnerFactories();
   }
 }

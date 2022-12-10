@@ -59,9 +59,6 @@ import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.io.ByteStreams;
  * <p>One must supply a {@link StateBackedIterableTranslationContext} when using {@link
  * CoderTranslator#fromComponents} to be able to create a {@link StateBackedIterable.Coder}.
  */
-@SuppressWarnings({
-  "rawtypes" // TODO(https://github.com/apache/beam/issues/20447)
-})
 public class StateBackedIterable<T> implements Iterable<T>, Serializable {
 
   @VisibleForTesting final StateRequest request;

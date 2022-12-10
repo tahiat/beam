@@ -43,7 +43,6 @@ import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.collect.Immutabl
  * <p>Can be re-used serially across {@link BeamFnApi.ProcessBundleRequest}s.
  */
 @SuppressWarnings({
-  "rawtypes", // TODO(https://github.com/apache/beam/issues/20447)
   "nullness" // TODO(https://github.com/apache/beam/issues/20497)
 })
 public class BeamFnDataWriteRunner<InputT> {
@@ -53,7 +52,7 @@ public class BeamFnDataWriteRunner<InputT> {
   public static class Registrar implements PTransformRunnerFactory.Registrar {
 
     @Override
-    public Map<String, PTransformRunnerFactory> getPTransformRunnerFactories() {
+    public Map<String, PTransformRunnerFactory<?>> getPTransformRunnerFactories() {
       return ImmutableMap.of(RemoteGrpcPortWrite.URN, new Factory());
     }
   }

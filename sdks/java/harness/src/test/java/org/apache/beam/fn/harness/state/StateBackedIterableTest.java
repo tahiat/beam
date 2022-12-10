@@ -49,9 +49,6 @@ import org.junit.runners.Parameterized;
 
 /** Tests for {@link StateBackedIterable}. */
 @RunWith(Enclosed.class)
-@SuppressWarnings({
-  "rawtypes", // TODO(https://github.com/apache/beam/issues/20447)
-})
 public class StateBackedIterableTest {
 
   @RunWith(Parameterized.class)

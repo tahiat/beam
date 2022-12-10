@@ -60,7 +60,6 @@ import org.slf4j.LoggerFactory;
  * receivers in a specified output map.
  */
 @SuppressWarnings({
-  "rawtypes", // TODO(https://github.com/apache/beam/issues/20447)
   "nullness" // TODO(https://github.com/apache/beam/issues/20497)
 })
 public class BeamFnDataReadRunner<OutputT> {
@@ -72,7 +71,7 @@ public class BeamFnDataReadRunner<OutputT> {
   public static class Registrar implements PTransformRunnerFactory.Registrar {
 
     @Override
-    public Map<String, PTransformRunnerFactory> getPTransformRunnerFactories() {
+    public Map<String, PTransformRunnerFactory<?>> getPTransformRunnerFactories() {
       return ImmutableMap.of(RemoteGrpcPortRead.URN, new Factory());
     }
   }

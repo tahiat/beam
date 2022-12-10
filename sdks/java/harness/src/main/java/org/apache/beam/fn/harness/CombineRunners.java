@@ -43,7 +43,6 @@ import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.collect.Iterable
 
 /** Executes different components of Combine PTransforms. */
 @SuppressWarnings({
-  "rawtypes", // TODO(https://github.com/apache/beam/issues/20447)
   "nullness",
   "keyfor"
 }) // TODO(https://github.com/apache/beam/issues/20497)
@@ -54,10 +53,10 @@ public class CombineRunners {
   public static class Registrar implements PTransformRunnerFactory.Registrar {
 
     @Override
-    public Map<String, PTransformRunnerFactory> getPTransformRunnerFactories() {
+    public Map<String, PTransformRunnerFactory<?>> getPTransformRunnerFactories() {
       return ImmutableMap.of(
           PTransformTranslation.COMBINE_PER_KEY_PRECOMBINE_TRANSFORM_URN,
-          new PrecombineFactory(),
+          new PrecombineFactory<>(),
           PTransformTranslation.COMBINE_PER_KEY_MERGE_ACCUMULATORS_TRANSFORM_URN,
           MapFnRunners.forValueMapFnFactory(CombineRunners::createMergeAccumulatorsMapFunction),
           PTransformTranslation.COMBINE_PER_KEY_EXTRACT_OUTPUTS_TRANSFORM_URN,

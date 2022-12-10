@@ -39,16 +39,13 @@ import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.collect.Iterable
 import org.joda.time.Instant;
 
 /** The Java SDK Harness implementation of the {@link Window.Assign} primitive. */
-@SuppressWarnings({
-  "rawtypes" // TODO(https://github.com/apache/beam/issues/20447)
-})
 class AssignWindowsRunner<T, W extends BoundedWindow> {
 
   /** A registrar which provides a factory to handle Java {@link WindowFn WindowFns}. */
   @AutoService(PTransformRunnerFactory.Registrar.class)
   public static class Registrar implements PTransformRunnerFactory.Registrar {
     @Override
-    public Map<String, PTransformRunnerFactory> getPTransformRunnerFactories() {
+    public Map<String, PTransformRunnerFactory<?>> getPTransformRunnerFactories() {
       return ImmutableMap.of(
           PTransformTranslation.ASSIGN_WINDOWS_TRANSFORM_URN,
           MapFnRunners.forWindowedValueMapFnFactory(new AssignWindowsMapFnFactory<>()));

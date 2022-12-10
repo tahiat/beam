@@ -136,7 +136,6 @@ import org.joda.time.format.PeriodFormat;
  * differently.
  */
 @SuppressWarnings({
-  "rawtypes", // TODO(https://github.com/apache/beam/issues/20447)
   "nullness", // TODO(https://github.com/apache/beam/issues/20497)
   "keyfor"
 })
@@ -145,9 +144,9 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
   @AutoService(PTransformRunnerFactory.Registrar.class)
   public static class Registrar implements PTransformRunnerFactory.Registrar {
     @Override
-    public Map<String, PTransformRunnerFactory> getPTransformRunnerFactories() {
-      Factory factory = new Factory();
-      return ImmutableMap.<String, PTransformRunnerFactory>builder()
+    public Map<String, PTransformRunnerFactory<?>> getPTransformRunnerFactories() {
+      PTransformRunnerFactory<?> factory = new Factory<>();
+      return ImmutableMap.<String, PTransformRunnerFactory<?>>builder()
           .put(PTransformTranslation.PAR_DO_TRANSFORM_URN, factory)
           .put(PTransformTranslation.SPLITTABLE_PAIR_WITH_RESTRICTION_URN, factory)
           .put(PTransformTranslation.SPLITTABLE_SPLIT_AND_SIZE_RESTRICTIONS_URN, factory)
@@ -223,7 +222,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
   private final SchemaCoder<OutputT> mainOutputSchemaCoder;
   private final Coder<? extends BoundedWindow> windowCoder;
   private final WindowingStrategy<InputT, ?> windowingStrategy;
-  private final Map<TupleTag<?>, SideInputSpec> tagToSideInputSpecMap;
+  private final Map<TupleTag<?>, SideInputSpec<?>> tagToSideInputSpecMap;
   private final Map<TupleTag<?>, Coder<?>> outputCoders;
   private final Map<String, KV<TimeDomain, Coder<Timer<Object>>>> timerFamilyInfos;
   private final ParDoPayload parDoPayload;
@@ -235,7 +234,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
   private final String mainInputId;
   private final FnApiStateAccessor<?> stateAccessor;
   private final Map<String, FnDataReceiver<?>> outboundTimerReceivers;
-  private final @Nullable FnApiTimerBundleTracker timerBundleTracker;
+  private final @Nullable FnApiTimerBundleTracker<?> timerBundleTracker;
   private final DoFnInvoker<InputT, OutputT> doFnInvoker;
   private final StartBundleArgumentProvider startBundleArgumentProvider;
   private final ProcessBundleContextBase processContext;
@@ -385,7 +384,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
         case PTransformTranslation.SPLITTABLE_SPLIT_AND_SIZE_RESTRICTIONS_URN:
         case PTransformTranslation.SPLITTABLE_TRUNCATE_SIZED_RESTRICTION_URN:
           mainOutputTag =
-              new TupleTag(Iterables.getOnlyElement(pTransform.getOutputsMap().keySet()));
+              new TupleTag<>(Iterables.getOnlyElement(pTransform.getOutputsMap().keySet()));
           break;
         default:
           throw new IllegalStateException(
@@ -399,12 +398,12 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
       Coder<?> maybeWindowedValueInputCoder = rehydratedComponents.getCoder(mainInput.getCoderId());
       // TODO: Stop passing windowed value coders within PCollections.
       if (maybeWindowedValueInputCoder instanceof WindowedValue.WindowedValueCoder) {
-        inputCoder = ((WindowedValueCoder) maybeWindowedValueInputCoder).getValueCoder();
+        inputCoder = ((WindowedValueCoder<?>) maybeWindowedValueInputCoder).getValueCoder();
       } else {
         inputCoder = maybeWindowedValueInputCoder;
       }
       if (inputCoder instanceof KvCoder) {
-        this.keyCoder = ((KvCoder) inputCoder).getKeyCoder();
+        this.keyCoder = ((KvCoder<?, ?>) inputCoder).getKeyCoder();
       } else {
         this.keyCoder = null;
       }
@@ -518,7 +517,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    final FnDataReceiver<WindowedValue> mainInputConsumer;
+    final FnDataReceiver<WindowedValue<?>> mainInputConsumer;
     switch (pTransform.getSpec().getUrn()) {
       case PTransformTranslation.PAR_DO_TRANSFORM_URN:
         if (doFnSignature.processElement().observesWindow() || !sideInputMapping.isEmpty()) {
@@ -824,7 +823,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
       currentRestriction = doFnInvoker.invokeGetInitialRestriction(processContext);
       outputTo(
           mainOutputConsumer,
-          (WindowedValue)
+          (WindowedValue<OutputT>)
               elem.withValue(
                   KV.of(
                       elem.getValue(),
@@ -849,7 +848,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
         currentRestriction = doFnInvoker.invokeGetInitialRestriction(processContext);
         outputTo(
             mainOutputConsumer,
-            (WindowedValue)
+            (WindowedValue<OutputT>)
                 WindowedValue.of(
                     KV.of(
                         elem.getValue(),
@@ -1125,8 +1124,8 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
    * An abstract class which forwards split and progress calls allowing the implementer to choose
    * where input elements are sent.
    */
-  private abstract class SplittableFnDataReceiver
-      implements HandlesSplits, FnDataReceiver<WindowedValue> {
+  private abstract class SplittableFnDataReceiver<T>
+      implements HandlesSplits, FnDataReceiver<WindowedValue<T>> {
     @Override
     public HandlesSplits.SplitResult trySplit(double fractionOfRemainder) {
       return trySplitForElementAndRestriction(fractionOfRemainder, Duration.ZERO);
@@ -1301,7 +1300,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
     }
     // Note that the assumption here is the fullInputCoder of the Truncate transform should be the
     // the same as the SDF/Process transform.
-    Coder fullInputCoder = WindowedValue.getFullCoder(inputCoder, windowCoder);
+    Coder<WindowedValue<InputT>> fullInputCoder = WindowedValue.getFullCoder(inputCoder, windowCoder);
     return constructSplitResult(
         windowedSplitResult,
         downstreamSplitResult,
@@ -1315,7 +1314,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
   }
 
   private static <WatermarkEstimatorStateT> WindowedSplitResult computeWindowSplitResult(
-      WindowedValue currentElement,
+      WindowedValue<InputT> currentElement,
       Object currentRestriction,
       BoundedWindow currentWindow,
       List<BoundedWindow> windows,
@@ -1372,13 +1371,13 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
 
   @VisibleForTesting
   static <WatermarkEstimatorStateT> SplitResultsWithStopIndex computeSplitForProcessOrTruncate(
-      WindowedValue currentElement,
+      WindowedValue<InputT> currentElement,
       Object currentRestriction,
       BoundedWindow currentWindow,
       List<BoundedWindow> windows,
       WatermarkEstimatorStateT currentWatermarkEstimatorState,
       double fractionOfRemainder,
-      RestrictionTracker currentTracker,
+      RestrictionTracker<RestrictionT> currentTracker,
       HandlesSplits splitDelegate,
       KV<Instant, WatermarkEstimatorStateT> watermarkAndState,
       int currentWindowIndex,
@@ -1782,7 +1781,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
   /** Outputs the given element to the specified set of consumers wrapping any exceptions. */
   private <T> void outputTo(FnDataReceiver<WindowedValue<T>> consumer, WindowedValue<T> output) {
     if (currentWatermarkEstimator instanceof TimestampObservingWatermarkEstimator) {
-      ((TimestampObservingWatermarkEstimator) currentWatermarkEstimator)
+      ((TimestampObservingWatermarkEstimator<?>) currentWatermarkEstimator)
           .observeTimestamp(output.getTimestamp());
     }
     try {
@@ -2132,7 +2131,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
       @Override
       public <T> void output(TupleTag<T> tag, T output, Instant timestamp, BoundedWindow window) {
         FnDataReceiver<WindowedValue<T>> consumer =
-            (FnDataReceiver) localNameToConsumer.get(tag.getId());
+            (FnDataReceiver<WindowedValue<T>>) (FnDataReceiver<?>) localNameToConsumer.get(tag.getId());
         if (consumer == null) {
           throw new IllegalArgumentException(String.format("Unknown output tag %s", tag));
         }
@@ -2214,7 +2213,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
           translateTimeDomain(parDoPayload.getTimerFamilySpecsMap().get(timerId).getTimeDomain());
       return new FnApiTimer(
           timerId,
-          ((KV) currentElement.getValue()).getKey(),
+          ((KV<?, ?>) currentElement.getValue()).getKey(),
           "",
           currentWindow,
           currentElement.getTimestamp(),
@@ -2227,7 +2226,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
     public TimerMap timerFamily(String timerFamilyId) {
       return new FnApiTimerMap(
           timerFamilyId,
-          ((KV) currentElement.getValue()).getKey(),
+          ((KV<?, ?>) currentElement.getValue()).getKey(),
           currentWindow,
           currentElement.getTimestamp(),
           currentElement.getTimestamp(),
@@ -2455,7 +2454,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
 
     @Override
     public Object schemaElement(int index) {
-      SerializableFunction converter = doFnSchemaInformation.getElementConverters().get(index);
+      SerializableFunction<InputT, Object> converter = (SerializableFunction<InputT, Object>) doFnSchemaInformation.getElementConverters().get(index);
       return converter.apply(element());
     }
 
@@ -2597,7 +2596,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
       @Override
       public <T> void output(TupleTag<T> tag, T output) {
         FnDataReceiver<WindowedValue<T>> consumer =
-            (FnDataReceiver) localNameToConsumer.get(tag.getId());
+            (FnDataReceiver<WindowedValue<T>>) (FnDataReceiver<?>) localNameToConsumer.get(tag.getId());
         if (consumer == null) {
           throw new IllegalArgumentException(String.format("Unknown output tag %s", tag));
         }
@@ -2611,7 +2610,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
       public <T> void outputWithTimestamp(TupleTag<T> tag, T output, Instant timestamp) {
         checkOnWindowExpirationTimestamp(timestamp);
         FnDataReceiver<WindowedValue<T>> consumer =
-            (FnDataReceiver) localNameToConsumer.get(tag.getId());
+            (FnDataReceiver<WindowedValue<T>>) (FnDataReceiver<?>) localNameToConsumer.get(tag.getId());
         if (consumer == null) {
           throw new IllegalArgumentException(String.format("Unknown output tag %s", tag));
         }
@@ -2646,7 +2645,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
       }
     }
 
-    private final OnWindowExpirationContext.Context context =
+    private final OnWindowExpirationContext<K>.Context context =
         new OnWindowExpirationContext.Context();
 
     @Override
@@ -2752,7 +2751,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
       public <T> void output(TupleTag<T> tag, T output) {
         checkTimerTimestamp(currentTimer.getHoldTimestamp());
         FnDataReceiver<WindowedValue<T>> consumer =
-            (FnDataReceiver) localNameToConsumer.get(tag.getId());
+            (FnDataReceiver<WindowedValue<T>>) (FnDataReceiver<?>) localNameToConsumer.get(tag.getId());
         if (consumer == null) {
           throw new IllegalArgumentException(String.format("Unknown output tag %s", tag));
         }
@@ -2816,7 +2815,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
       }
     }
 
-    private final OnTimerContext.Context context = new OnTimerContext.Context();
+    private final OnTimerContext<K>.Context context = new OnTimerContext.Context();
 
     @Override
     public BoundedWindow window() {
@@ -2880,7 +2879,7 @@ public class FnApiDoFnRunner<InputT, RestrictionT, PositionT, WatermarkEstimator
     public org.apache.beam.sdk.state.Timer timer(String timerId) {
       TimeDomain timeDomain =
           translateTimeDomain(parDoPayload.getTimerFamilySpecsMap().get(timerId).getTimeDomain());
-      return new FnApiTimer(
+      return new FnApiTimer<>(
           timerId,
           currentTimer.getUserKey(),
           "",

@@ -33,7 +33,6 @@ import org.apache.beam.vendor.grpc.v1p48p1.com.google.protobuf.ByteString;
  * An implementation of a multimap side input that utilizes the Beam Fn State API to fetch values.
  */
 @SuppressWarnings({
-  "rawtypes", // TODO(https://github.com/apache/beam/issues/20447)
   "nullness" // TODO(https://github.com/apache/beam/issues/20497)
 })
 public class MultimapSideInput<K, V> implements MultimapView<K, V> {

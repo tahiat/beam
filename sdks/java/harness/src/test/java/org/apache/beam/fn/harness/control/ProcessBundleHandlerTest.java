@@ -163,7 +163,6 @@ import org.mockito.MockitoAnnotations;
 /** Tests for {@link ProcessBundleHandler}. */
 @RunWith(JUnit4.class)
 @SuppressWarnings({
-  "rawtypes", // TODO(https://github.com/apache/beam/issues/20447)
   "unused", // TODO(https://github.com/apache/beam/issues/21230): Remove when new version of
   // errorprone is released (2.11.0)
 })
@@ -578,7 +577,7 @@ public class ProcessBundleHandlerTest {
     Map<String, BeamFnApi.ProcessBundleDescriptor> fnApiRegistry =
         ImmutableMap.of("1L", processBundleDescriptor);
 
-    Map<String, PTransformRunnerFactory> urnToPTransformRunnerFactoryMap =
+    Map<String, PTransformRunnerFactory<?>> urnToPTransformRunnerFactoryMap =
         Maps.newHashMap(REGISTERED_RUNNER_FACTORIES);
     urnToPTransformRunnerFactoryMap.put(DATA_INPUT_URN, (context) -> null);
 
@@ -1041,7 +1040,7 @@ public class ProcessBundleHandlerTest {
     Map<String, BeamFnApi.ProcessBundleDescriptor> fnApiRegistry =
         ImmutableMap.of("1L", processBundleDescriptor);
 
-    Map<String, PTransformRunnerFactory> urnToPTransformRunnerFactoryMap =
+    Map<String, PTransformRunnerFactory<?>> urnToPTransformRunnerFactoryMap =
         Maps.newHashMap(REGISTERED_RUNNER_FACTORIES);
     urnToPTransformRunnerFactoryMap.put(
         DATA_INPUT_URN,

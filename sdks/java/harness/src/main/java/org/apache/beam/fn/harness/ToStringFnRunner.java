@@ -49,10 +49,7 @@ public class ToStringFnRunner {
   public static class Registrar implements PTransformRunnerFactory.Registrar {
 
     @Override
-    @SuppressWarnings({
-      "rawtypes" // TODO(https://github.com/apache/beam/issues/20447)
-    })
-    public Map<String, PTransformRunnerFactory> getPTransformRunnerFactories() {
+    public Map<String, PTransformRunnerFactory<?>> getPTransformRunnerFactories() {
       return ImmutableMap.of(
           URN,
           MapFnRunners.forValueMapFnFactory(ToStringFnRunner::createToStringFunctionForPTransform));
