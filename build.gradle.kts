@@ -24,10 +24,19 @@ plugins {
   id("net.researchgate.release") version "2.8.1"
   id("org.apache.beam.module")
   id("org.sonarqube") version "3.0"
+  id("com.diffplug.spotless")
 }
 
 /*************************************************************************************************/
 // Configure the root project
+
+// Grab all markdown throughout the repo
+spotless {
+  flexmark {
+    target('**/*.md')
+    flexmark(0.64.8)
+  }
+}
 
 tasks.rat {
   // Set input directory to that of the root project instead of the CWD. This
