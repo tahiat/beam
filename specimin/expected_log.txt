@@ -1,0 +1,39 @@
+error: StructuralEqualityComparer: unexpected combination:  type: [TYPEVAR class org.checkerframework.framework.type.AnnotatedTypeMirror$AnnotatedTypeVariable] OutputT extends Object  supertype: [WILDCARD class org.checkerframework.framework.type.AnnotatedTypeMirror$AnnotatedWildcardType] ? extends Object
+    visitHistory = org.checkerframework.framework.type.StructuralEqualityVisitHistory@6ad43005
+  ; The Checker Framework crashed.  Please report the crash.  Version: Checker Framework 3.42.0.
+  Compilation unit: beam/sdks/java/core/src/main/java/org/apache/beam/sdk/io/FileIO.java
+  Last visited tree at line 1118 column 14:
+        return toBuilder().setSinkFn((Contextful) sinkFn).setOutputFn(outputFn).build();
+  Exception: java.lang.Throwable; java.lang.Throwable
+        at org.checkerframework.javacutil.BugInCF.<init>(BugInCF.java:22)
+        at org.checkerframework.framework.type.visitor.AtmComboVisitor.defaultAction(AtmComboVisitor.java:66)
+        at org.checkerframework.framework.type.StructuralEqualityComparer.defaultAction(StructuralEqualityComparer.java:56)
+        at org.checkerframework.framework.type.StructuralEqualityComparer.defaultAction(StructuralEqualityComparer.java:29)
+        at org.checkerframework.framework.type.visitor.AbstractAtmComboVisitor.visitTypevar_Wildcard(AbstractAtmComboVisitor.java:560)
+        at org.checkerframework.framework.util.AtmCombo.accept(AtmCombo.java:620)
+        at org.checkerframework.framework.type.StructuralEqualityComparer.areEqual(StructuralEqualityComparer.java:91)
+        at org.checkerframework.framework.type.StructuralEqualityComparer.visitDeclared_Declared(StructuralEqualityComparer.java:246)
+        at org.checkerframework.framework.type.StructuralEqualityComparer.visitDeclared_Declared(StructuralEqualityComparer.java:29)
+        at org.checkerframework.framework.util.AtmCombo.accept(AtmCombo.java:312)
+        at org.checkerframework.framework.type.StructuralEqualityComparer.areEqual(StructuralEqualityComparer.java:91)
+        at org.checkerframework.framework.type.StructuralEqualityComparer.areEqualInHierarchy(StructuralEqualityComparer.java:101)
+        at org.checkerframework.framework.type.DefaultTypeHierarchy.areEqualInHierarchy(DefaultTypeHierarchy.java:338)
+        at org.checkerframework.framework.type.DefaultTypeHierarchy.isContainedBy(DefaultTypeHierarchy.java:413)
+        at org.checkerframework.framework.type.DefaultTypeHierarchy.isContainedMany(DefaultTypeHierarchy.java:647)
+        at org.checkerframework.framework.type.DefaultTypeHierarchy.visitTypeArgs(DefaultTypeHierarchy.java:624)
+        at org.checkerframework.framework.type.DefaultTypeHierarchy.visitDeclared_Declared(DefaultTypeHierarchy.java:550)
+        at org.checkerframework.framework.type.DefaultTypeHierarchy.visitDeclared_Declared(DefaultTypeHierarchy.java:48)
+        at org.checkerframework.framework.util.AtmCombo.accept(AtmCombo.java:312)
+        at org.checkerframework.framework.type.DefaultTypeHierarchy.isSubtype(DefaultTypeHierarchy.java:258)
+        at org.checkerframework.framework.type.DefaultTypeHierarchy.isSubtype(DefaultTypeHierarchy.java:136)
+        at org.checkerframework.common.basetype.BaseTypeVisitor.commonAssignmentCheck(BaseTypeVisitor.java:3062)
+        at org.checkerframework.common.basetype.BaseTypeVisitor.commonAssignmentCheck(BaseTypeVisitor.java:3037)
+        at org.checkerframework.common.basetype.BaseTypeVisitor.checkArguments(BaseTypeVisitor.java:3604)
+        at org.checkerframework.common.basetype.BaseTypeVisitor.visitMethodInvocation(BaseTypeVisitor.java:1811)
+        at org.checkerframework.common.basetype.BaseTypeVisitor.visitMethodInvocation(BaseTypeVisitor.java:187)
+        at jdk.compiler/com.sun.tools.javac.tree.JCTree$JCMethodInvocation.accept(JCTree.java:1832)
+        at jdk.compiler/com.sun.source.util.TreePathScanner.scan(TreePathScanner.java:92)
+        at org.checkerframework.framework.source.SourceVisitor.scan(SourceVisitor.java:92)
+        at org.checkerframework.common.basetype.BaseTypeVisitor.scan(BaseTypeVisitor.java:410)
+        at org.checkerframework.common.basetype.BaseTypeVisitor.scan(BaseTypeVisitor.java:187)
+        at jdk.compiler/com.sun.source.util.TreeScanner.visitMemberSelect(TreeScanner.java:897)
